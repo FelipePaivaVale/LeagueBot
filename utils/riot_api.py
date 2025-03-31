@@ -1,7 +1,7 @@
 import aiohttp
 import config.config as config
 from urllib.parse import quote
-from utils.helpers import DDragonHelper
+from utils.helpers import DDragonHelper, QueueHelper
 
 class RiotAPI:
     def __init__(self):
@@ -9,6 +9,7 @@ class RiotAPI:
         self.region = config.Config.DEFAULT_REGION
         self.match_region = config.Config.MATCH_REGION
         self.headers = {'X-Riot-Token': self.api_key}
+        self.queue_helper = QueueHelper()
         self.ddragon = DDragonHelper()
 
     async def get_current_version(self):
@@ -26,15 +27,6 @@ class RiotAPI:
     async def get_summoner_by_puuid(self, puuid):
         """Obtém summoner por PUUID"""
         url = f'https://{self.region}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}'
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=self.headers) as response:
-                if response.status == 200:
-                    return await response.json()
-                return None
-
-    async def get_summoner_by_name(self, summoner_name):
-        """Método legado - mantido para compatibilidade"""
-        url = f'https://{self.region}.api.riotgames.com/lol/summoner/v4/summoners/by-name/{quote(summoner_name)}'
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=self.headers) as response:
                 if response.status == 200:
@@ -78,3 +70,7 @@ class RiotAPI:
 
     async def get_champion_data(self, champion_name):
         return await self.ddragon.get_champion_data(champion_name)
+    
+    async def get_queue_description(self, queue_id):
+        """Obtém a descrição amigável de um tipo de fila"""
+        return await self.queue_helper.get_queue_description(queue_id)

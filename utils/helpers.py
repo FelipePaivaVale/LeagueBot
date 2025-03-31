@@ -19,6 +19,7 @@ class DDragonHelper:
         if (self._last_updated and 
             datetime.now() - self._last_updated < timedelta(hours=1) and 
             self._current_version):
+            print("versão utilizada: ", self._current_version)
             return self._current_version
 
         try:
@@ -29,6 +30,7 @@ class DDragonHelper:
                         self._versions = versions
                         self._current_version = versions[0]
                         self._last_updated = datetime.now()
+                        print("versão utilizada: ", self._current_version)
                         return self._current_version
         except Exception as e:
             print(f"Erro ao obter versões: {e}")
@@ -58,3 +60,43 @@ class DDragonHelper:
         except Exception as e:
             print(f"Erro ao obter dados do campeão: {e}")
         return None
+    
+class QueueHelper:
+    _instance = None
+    _queues = None
+    _last_updated = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(QueueHelper, cls).__new__(cls)
+        return cls._instance
+
+    async def get_queues(self):
+        """Obtém a lista de queues com cache de 24 horas"""
+        if (self._last_updated and 
+            datetime.now() - self._last_updated < timedelta(hours=24) and 
+            self._queues):
+            return self._queues
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get('https://static.developer.riotgames.com/docs/lol/queues.json') as response:
+                    if response.status == 200:
+                        self._queues = await response.json()
+                        self._last_updated = datetime.now()
+                        return self._queues
+        except Exception as e:
+            print(f"Erro ao obter queues: {e}")
+
+        return None
+
+    async def get_queue_description(self, queue_id):
+        """Obtém a descrição de uma queue pelo ID"""
+        queues = await self.get_queues()
+        if not queues:
+            return f"Queue {queue_id}"
+
+        queue = next((q for q in queues if q['queueId'] == queue_id), None)
+        if queue:
+            return queue['description'] or queue['map'] or f"Queue {queue_id}"
+        return f"Queue {queue_id}"
